@@ -1,0 +1,455 @@
+---
+title: "Travaux pratique R"
+author: "Thierno Bocoum"
+date: "2026-04-10"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+summary(cars)
+```
+
+
+## Exercice1
+
+On considére les vecteurs suivant:
+
+```{r}
+x<-c(1,2,3)
+y<-c(TRUE,FALSE,TRUE)
+z<-c("4","5","6")
+w<-list(1,"2",TRUE)
+plot(pressure)
+```
+
+1. Déterminons, sans exécuter le code, le type et le mode de chaque objet.
+
+-x (type objet: vecteur, mode: numeric)
+-y (type objet: vecteur, mode: logical )
+-z (type objet: vecteur, mode: character )
+-w (type objet: list, mode:list)
+
+2.Analyse d'expressions
+
+```{r}
+x+y
+plot(pressure)
+```
+
+R convertit y (logical) en numeric :
+
+TRUE → 1
+FALSE → 0
+
+Donc :
+
+x + y = c(1,2,3) + c(1,0,1) = c 
+
+```{r}
+x+z
+plot(pressure)
+```
+
+z est de type character
+donc impossible d’additionner numeric + character
+
+```{r}
+as.numeric(z)+x
+```
+-Conversion explicite :
+
+.as.numeric(z) = c(4,5,6)
+.Donc : c(4,5,6) + c(1,2,3) = c(5,7,9)
+
+```{r}
+unlist(w)+x
+```
+unlist(w) = c("1", "2", "TRUE")
+Tout devient character
+Donc : "1" + 1 → erreur
+
+3.Cas ou R effectue une coercition implicite R fait une conversion automatique dans :
+
+x + y
+  unlist(w)+x 
+Type cible et logique de convertion mobiliser
+
+-Cas 1 : x + y :
+
+logical → numeric
+R utilise :
+  TRUE = 1
+  FALSE = 0
+Type cible : numeric
+
+-Cas 2 : unlist(w):
+
+éléments : numeric, character, logical
+R applique la règle de hiérarchie :
+  logical < numeric < character 
+5.Discutons rigoureusement les conséquence de l'instruction suivante
+
+-Conséquences importantes :
+
+.Introduction de NA silencieux
+Peut fausser :
+  moyennes
+  régressions
+  analyses statistiques
+  
+-Exemples:
+mean(as.numeric(c("10","A","20")))
+donne : NA
+
+#Impact des valeurs non numériques sur une régression
+La conversion d’un vecteur contenant des valeurs non numériques à l’aide de la fonction as.numeric() peut introduire des valeurs manquantes (NA) lorsque certaines observations ne sont pas convertibles. Ces valeurs NA ont des conséquences importantes dans le cadre d’une régression.
+
+En effet, lors de l’estimation d’un modèle avec la fonction lm(), R applique par défaut une suppression des observations contenant des valeurs manquantes (listwise deletion). Ainsi, toute observation comportant un NA dans l’une des variables est exclue de l’analyse.
+
+Cette suppression peut poser plusieurs problèmes.
+
+Premièrement, elle entraîne une perte d’information, ce qui réduit la taille de l’échantillon et peut diminuer la précision des estimateurs.
+
+Deuxièmement, si les valeurs non numériques (converties en NA) correspondent en réalité à des erreurs de saisie ou à des codes spécifiques (par exemple “A” pour une catégorie particulière), leur suppression n’est pas nécessairement aléatoire. Dans ce cas, on introduit un biais de sélection, car certaines catégories d’individus peuvent être sous-représentées ou totalement exclues de l’analyse.
+
+Troisièmement, cette perte non aléatoire d’observations peut conduire à une distorsion des coefficients estimés. Par exemple, si les observations supprimées correspondent à des individus ayant des caractéristiques spécifiques (revenus atypiques, âges particuliers, etc.), la relation estimée entre les variables explicatives et la variable dépendante ne reflète plus fidèlement la réalité.
+
+En conséquence, la présence de valeurs non numériques dans un vecteur censé être numérique, et leur conversion automatique en NA, peut fausser les résultats d’une régression si ces anomalies ne sont pas détectées et traitées en amont. Il est donc essentiel de procéder à un contrôle rigoureux des données avant toute analyse économétrique.
+
+6-Proposer une méthode robuste pour détecter automatiquement les convertions problématique dans un vecteur.
+
+On considère le vecteur initiale suivant:
+
+```{r}
+t <- c("10", "A", "20", "B", "30")
+``` 
+
+Conversion
+
+```{r}
+t_num <- as.numeric(t)
+``` 
+
+Détection des conversions problématiques
+
+```{r}
+problemes <- is.na(t_num) & !is.na(t)
+``` 
+
+Affichage des valeurs problématiques
+
+```{r}
+t[problemes]
+``` 
+#Exercice2
+
+1. Déterminons le type de chaque colonne de D
+
+```{r}
+A <- c(1, 2, 3)
+B <- c("a", "b", "c")
+C <- c(TRUE, FALSE, TRUE)
+D <- data.frame(A, B, C)
+D
+```
+
+```{r}
+typeof(A)
+typeof(B) 
+typeof(C)
+```
+2. Expliquons précisément pourquoi R accepte cette structure malgré l’hétérogénéité initiale
+
+Un data.frame est une structure de type liste où :
+-Chaque colonne est un vecteur
+-Les vecteurs peuvent avoir des types différents
+-Seule contrainte : même longueur
+Donc ici :
+A, B, C ont tous longueur 3 
+leurs types peuvent différer 
+
+3. Comparaison avec as.matrix(D)
+
+```{r}
+M <- as.matrix(D)
+```
+
+R applique une coercition implicite globale
+
+Hiérarchie :
+
+```{r}
+logical < numeric < character
+```
+Comme B est un caractére donc tout devient charactere
+
+4. Type final de la matrice
+
+```{r}
+typeof(M)
+```
+-Justification formelle:
+
+.Une matrice = vecteur + dimension
+.Tous les éléments doivent être du même type
+.Présence de character ⇒ coercition vers character
+
+-Le contenu de M
+
+```{r}
+M
+```
+5. Perte d’information statistique
+
+Problème majeur
+
+-Après transformation :
+
+.A (numeric) → character 
+.C (logical) → character
+
+-Conséquences
+
+.Impossible de faire des calculs
+
+```{r}
+mean(M[,1])
+```
+
+.Perte du sens statistique
+
+"1" ≠ 1
+"TRUE" ≠ TRUE
+
+Ce sont maintenant des chaînes de caractères
+
+.Risque d’erreurs silencieuses
+
+Certaines fonctions peuvent reconvertir sans contrôle → danger
+
+-Conclusion
+
+La transformation en matrice homogénéise les types au prix d’une perte d’information, ce qui peut rendre les données inutilisables pour certaines analyses statistiques.
+
+6. Stratégie pour préserver les types
+
+```{r}
+data.matrix(D)
+```
+-Convertit intelligemment :
+
+Numeric → numeric
+Logical → numeric (TRUE = 1)
+Character → facteur puis numeric
+
+#Exercice 3 — Facteurs, encodage et biais d’interprétation
+
+On considère :
+
+```{r}
+niveau <- c("faible", "moyen", "élevé", "moyen", "faible")
+```
+
+1. Transformer en facteur ordonné
+
+-Il faut définir une hiérarchie logique :
+
+```{r}
+niveau_fact <- factor(niveau,
+                      levels = c("faible", "moyen", "élevé"),
+                      ordered = TRUE)
+```
+
+Ici on a :
+
+faible < moyen < élevé
+
+2. Valeurs numériques internes
+
+```{r}
+as.numeric(niveau_fact)
+```
+-Correspondance :
+
+.faible → 1
+.moyen → 2
+.élevé → 3
+
+3. Pourquoi as.numeric(niveau) est dangereux
+
+```{r}
+as.numeric(niveau)
+```
+-Explication:
+
+.Niveau est character
+.R ne peut pas convertir directement en numeric
+.Donc → NA
+
+4. Méthode correcte
+
+Si on veut une représentation numérique cohérente :
+
+-Cas ordonné (correct ici)
+
+```{r}
+as.numeric(niveau_fact)
+```
+
+Acceptable car ordre défini
+
+5. Analyse de :
+
+```{r}
+revenu <- c(100, 200, 300, 250, 150) 
+mean(revenu[niveau == "élevé"])
+```
+
+
+-Étape 1
+
+```{r}
+niveau == "élevé"
+```
+-Étape 2
+
+```{r}
+revenu[niveau == "élevé"]
+```
+-Résultat
+
+```{r}
+mean(revenu[niveau == "élevé"])
+```
+Validité statistique
+
+-Correct mais :
+
+.une seule observation
+.non représentatif
+
+6. Biais si facteur mal ordonné
+
+-Si on met :
+
+```{r}
+levels = c("élevé", "faible", "moyen")
+
+```
+
+-Alors :
+
+.élevé → 1
+.faible → 2
+.moyen → 3
+
+-Conséquence:
+
+.interprétation totalement fausse
+.analyses biaisées (régression, moyenne, etc.)
+
+-Conclusion
+
+Un mauvais ordonnancement des niveaux peut induire des erreurs d’interprétation et des biais dans les analyses quantitatives.
+
+#Exercice 4 — Construction d’un data frame
+
+1. Construction du data frame
+
+```{r}
+id <- 1:5
+sexe <- factor(c("M", "F", "F", "M", "M"))
+filiere <- factor(c("ISEP", "ISE", "AS", "ISEP", "ISE"))
+S1 <- c(12, 14, 10, 9, 15)
+S2 <- c(13, 15, NA, 10, 16)
+boursier <- c(TRUE, FALSE, TRUE, TRUE, FALSE)
+region <- c("Dakar", "Thiès", NA, "Saint-Louis", "Kaolack")
+
+df <- data.frame(id, sexe, filiere, S1, S2, boursier, region)
+df
+
+```
+
+2.Moyenne annuelle
+
+```{r}
+moyenne_annuelle <- rowMeans(df[, c("S1","S2")], na.rm = TRUE)
+```
+
+Permet de gèrer les NA correctement
+
+3. Variable "Admis / Ajourné"
+
+```{r}
+verdict <- ifelse(moyenne_annuelle >= 12, "Admis", "Ajourné")
+
+```
+
+4. Faut-il ordonner filiere ?
+
+-Justification:
+
+ISEP, ISE, AS → catégories sans ordre forcément naturel
+ce sont des variables nominales
+
+-Conclusion:
+
+Il n’est pas pertinent de transformer la variable filière en facteur ordonné car elle ne possède pas de hiérarchie évident.
+
+5. Vérification de la structure
+
+```{r}
+str(df)
+summary(df)
+```
+
+-Analyse:
+
+.types cohérents 
+.NA présents dans S2 et region
+.aucune incohérence majeure
+
+6. Contrôle automatique
+
+Valeurs manquantes
+
+colSums(is.na(df))
+
+```{r}
+colSums(is.na(df))
+```
+
+-Types
+
+```{r}
+sapply(df, class)
+```
+-Valeurs aberrantes
+
+```{r}
+summary(df$S1)
+summary(df$S2)
+```
+7. Implications pour l’analyse
+
+-Régression linéaire:
+
+.variables numériques: Pas de probléme
+.facteurs → transformés en variables indicatrices
+
+-Analyse factorielle
+
+.nécessite données numériques
+.attention aux variables qualitatives
+
+-Conclusion finale
+
+Le choix du typage des variables influence directement les méthodes statistiques applicables. Une mauvaise spécification peut entraîner des erreurs d’interprétation ou des résultats biaisés.
+
